@@ -584,8 +584,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "0fa760249bc20745c5f3a1246c70a7b0ad361f9f4a4f36493c76c7427220f165",
-      "bytes": 232
+      "sha256": "9164648b7e2d8d723d79f19ad2929afc3c57dcec5130f4ea2de2e415725a7444",
+      "bytes": 24335
     },
     {
       "path": "model_cards/README.md",

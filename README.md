@@ -2,11 +2,11 @@
 
 # ReCAP
 
-### Efficient Training-Free Context Scheduling<br>for Long-Horizon Robot Video World Models
+### Remembering What Matters for Long-Horizon Robot World Models
 
 **Preserve the anchor. Keep recent dynamics. Evict stale history.**
 
-[Paper](site/paper.pdf) · [Project page](site/index.html) · [Quick start](#quick-start) · [Documentation](#documentation)
+[Paper](https://anonymous.4open.science/r/ReCAP-003B/site/paper.pdf) · [Project page source](https://anonymous.4open.science/r/ReCAP-003B/site/index.html) · [Quick start](#quick-start) · [Documentation](#documentation)
 
 [Apache-2.0 license](LICENSE) · Anonymous review snapshot
 
@@ -67,7 +67,7 @@ Open **`runs/calvin_demo/compare_all_strategies.gif`** to view the comparison. P
 
 ![CALVIN: ground truth, Full Context and ReCAP rollouts](artifacts/cases/calvin-1.gif)
 
-[More rollouts on the project page →](site/index.html#rollouts) · For all **12 released cases**, open [`gallery.html`](gallery.html) locally.
+[More rollouts on the project page →](https://anonymous.4open.science/r/ReCAP-003B/site/index.html#rollouts) · For all **12 released cases**, open [`gallery.html`](gallery.html) locally.
 
 ## Paper at a glance
 
@@ -87,6 +87,6 @@ Open **`runs/calvin_demo/compare_all_strategies.gif`** to view the comparison. P
 
 ## Citation & license
 
-Please cite the [paper](site/paper.pdf) and use [CITATION.cff](CITATION.cff) for this software release. Archival paper citation metadata will be added when available.
+Please cite the [paper](https://anonymous.4open.science/r/ReCAP-003B/site/paper.pdf) and use [CITATION.cff](CITATION.cff) for this software release. Archival paper citation metadata will be added when available.
 
 New ReCAP code: [Apache-2.0](LICENSE). Upstream components retain their original licenses; see [NOTICE](NOTICE) and [third-party attribution](THIRD_PARTY_NOTICES.md). Dataset and model terms remain separate.

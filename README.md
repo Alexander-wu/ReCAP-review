@@ -6,7 +6,7 @@
 
 **Preserve the anchor. Keep recent dynamics. Evict stale history.**
 
-[Paper](https://anonymous.4open.science/r/ReCAP-003B/site/paper.pdf) · [Project page source](https://anonymous.4open.science/r/ReCAP-003B/site/index.html) · [Quick start](#quick-start) · [Documentation](#documentation)
+[Paper](https://anonymous.4open.science/r/ReCAP-003B/site/paper.pdf) · [Project page](https://anonymous.4open.science/w/ReCAP-003B/) · [Quick start](#quick-start) · [Documentation](#documentation)
 
 [Apache-2.0 license](LICENSE) · Anonymous review snapshot
 
@@ -67,7 +67,7 @@ Open **`runs/calvin_demo/compare_all_strategies.gif`** to view the comparison. P
 
 ![CALVIN: ground truth, Full Context and ReCAP rollouts](artifacts/cases/calvin-1.gif)
 
-[More rollouts on the project page →](https://anonymous.4open.science/r/ReCAP-003B/site/index.html#rollouts) · For all **12 released cases**, open [`gallery.html`](gallery.html) locally.
+[More rollouts on the project page →](https://anonymous.4open.science/w/ReCAP-003B/site/index.html#rollouts) · For all **12 released cases**, open [`gallery.html`](gallery.html) locally.
 
 ## Paper at a glance
 

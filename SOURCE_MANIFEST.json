@@ -39,8 +39,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "c00f9a384a7aab7d1463f1d9b04bc412341c75c640ce28bf954076fd8d97ba6f",
-      "bytes": 4830
+      "sha256": "57873183247dd8814a9eab1e2d63966aa204ffca4e2f461570e5571e1cd20cf5",
+      "bytes": 4808
     },
     {
       "path": "SECURITY.md",
@@ -834,8 +834,8 @@
     },
     {
       "path": "site/downloads/ReCAP-code.zip",
-      "sha256": "388026eb9edbf6e93472ea66e7b467edcf1e46fec5beeccd9de23078ed3af99a",
-      "bytes": 35924642
+      "sha256": "b48add503cd0af3420e99bbfec3279d7f929eb0124e79255d1a3ad5e37342502",
+      "bytes": 35924645
     },
     {
       "path": "site/index.html",
@@ -844,8 +844,8 @@
     },
     {
       "path": "site/paper.pdf",
-      "sha256": "ac4e124a8a652ffa70cfc1961f61677fb7e265039ac75604a464e2918af9cfb6",
-      "bytes": 27840298
+      "sha256": "6698e4a04ddd4856a5e16d7a18f0219306cbcaec476f37c2dc3ee164536838a5",
+      "bytes": 27840305
     },
     {
       "path": "site/script.js",

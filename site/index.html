@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ReCAP is a training-free context scheduler for stable and efficient long-horizon robot video world models.">
+  <title>ReCAP — Efficient Context Scheduling for Robot Video World Models</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="ReCAP home">
+      <span class="brand-mark">R</span>
+      <span>ReCAP</span>
+    </a>
+    <button class="menu-button" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="#overview">Overview</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#rollouts">Rollouts</a>
+      <a href="#bibtex">BibTeX</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero section-shell">
+      <div class="eyebrow">Long-horizon robot video world models</div>
+      <h1>Remembering What Matters for Long-Horizon Robot World Models</h1>
+      <p class="hero-deck">
+        Keep the scene. Follow the latest state. Forget stale generated history.
+      </p>
+      <div class="authors">
+        <span>Anonymous authors</span>
+      </div>
+      <p class="author-note">Under double-blind review</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="paper.pdf">Read the paper</a>
+        <a class="button button-secondary" href="#rollouts">Watch rollouts</a>
+        <a class="button button-secondary" href="../README.md">Code &amp; reproduction</a>
+      </div>
+      <figure class="hero-figure reveal">
+        <img src="assets/teaser.png" alt="Overview of ReCAP gains in attention, prediction quality, VLM judging, and memory efficiency">
+        <figcaption>ReCAP improves prediction quality while bounding the active context and KV cache.</figcaption>
+      </figure>
+    </section>
+
+    <section id="overview" class="paper-section section-shell reveal">
+      <div class="section-kicker">Why context scheduling?</div>
+      <h2>More history is not always better.</h2>
+      <div class="overview-grid">
+        <p class="lead">
+          Autoregressive robot video world models keep appending their own predictions to the
+          context. Over long rollouts, stale generated states compete with recent visual–action
+          states for a finite attention budget, causing structural omissions, motion distortion,
+          and drift.
+        </p>
+        <p>
+          <strong>ReCAP</strong>—Receding Context with Anchor Preservation—reorganizes that
+          context at inference time. It preserves the initial scene anchor, retains a contiguous
+          window of recent visual–action blocks, and evicts stale middle history. The tokenizer,
+          world model, and decoder remain completely frozen.
+        </p>
+      </div>
+      <div class="metric-grid" aria-label="Key results">
+        <article class="metric-card">
+          <strong>63.3%</strong>
+          <span>lower LPIPS on BridgeV2</span>
+        </article>
+        <article class="metric-card">
+          <strong>73.3%</strong>
+          <span>less logical KV at H=64</span>
+        </article>
+        <article class="metric-card">
+          <strong>6.51%</strong>
+          <span>lower p50 latency at H=64</span>
+        </article>
+        <article class="metric-card">
+          <strong>4.28×</strong>
+          <span>throughput at 256 requests</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="method" class="paper-section section-shell reveal">
+      <div class="section-kicker">Method</div>
+      <h2>A bounded context with distinct memory roles.</h2>
+      <figure class="wide-figure">
+        <img src="assets/method.jpg" alt="Diagram comparing full-history decoding with the ReCAP context schedule">
+      </figure>
+      <div class="method-steps">
+        <article>
+          <span class="step-number">01</span>
+          <h3>Preserve the anchor</h3>
+          <p>Keep real initial observations as a stable reference for scene identity, robot morphology, and workspace layout.</p>
+        </article>
+        <article>
+          <span class="step-number">02</span>
+          <h3>Retain recent dynamics</h3>
+          <p>Maintain the latest complete visual–action blocks so local motion and action conditioning remain coherent.</p>
+        </article>
+        <article>
+          <span class="step-number">03</span>
+          <h3>Evict stale history</h3>
+          <p>Remove older generated blocks before they dilute recent-state attention or consume an unbounded KV cache.</p>
+        </article>
+      </div>
+
+      <div class="decode-explainer">
+        <div class="explainer-heading">
+          <div>
+            <span class="mini-kicker">Inside one autoregressive step</span>
+            <h3>Schedule first, then predict.</h3>
+          </div>
+          <p>ReCAP changes only which existing tokens remain active. Generation, tokenization, and model weights are untouched.</p>
+        </div>
+        <div class="principle-flow" aria-label="ReCAP inference flow">
+          <article class="flow-card">
+            <span>1</span>
+            <strong>Organize memory</strong>
+            <small>Anchor + recent complete blocks</small>
+          </article>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <article class="flow-card">
+            <span>2</span>
+            <strong>Predict visual tokens</strong>
+            <small>Generate the next 80-token frame</small>
+          </article>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <article class="flow-card">
+            <span>3</span>
+            <strong>Append the action</strong>
+            <small>Form one aligned 93-token block</small>
+          </article>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <article class="flow-card">
+            <span>4</span>
+            <strong>Recede and repeat</strong>
+            <small>Evict the oldest recent block</small>
+          </article>
+        </div>
+      </div>
+
+      <div class="context-demo">
+        <div class="demo-header">
+          <div>
+            <span class="mini-kicker">Interactive context timeline</span>
+            <h3>What is active at rollout step <output id="step-output" for="step-slider">64</output>?</h3>
+          </div>
+          <button class="play-context" type="button" data-play-context>Play growth</button>
+        </div>
+        <input id="step-slider" class="step-slider" type="range" min="1" max="64" value="64" aria-label="Rollout step">
+        <div class="timeline-scale" aria-hidden="true"><span>Step 1</span><span>Step 16</span><span>Step 32</span><span>Step 48</span><span>Step 64</span></div>
+
+        <article class="context-row full-row">
+          <div class="context-row-heading">
+            <div><strong>Full Context</strong><span>Retains every generated block</span></div>
+            <output id="full-token-count">7,232 tokens</output>
+          </div>
+          <div class="context-meter"><span id="full-meter"></span></div>
+          <div class="block-strip" id="full-blocks" aria-label="Full Context active blocks"></div>
+        </article>
+
+        <article class="context-row recap-row">
+          <div class="context-row-heading">
+            <div><strong>ReCAP</strong><span>One scene anchor + one dynamic anchor + six recent blocks</span></div>
+            <output id="recap-token-count">1,931 tokens</output>
+          </div>
+          <div class="context-meter"><span id="recap-meter"></span></div>
+          <div class="block-strip" id="recap-blocks" aria-label="ReCAP active blocks"></div>
+        </article>
+
+        <div class="block-legend">
+          <span><i class="anchor-swatch"></i>Scene anchor</span>
+          <span><i class="dynamic-swatch"></i>Dynamic anchor</span>
+          <span><i class="recent-swatch"></i>Recent block</span>
+          <span><i class="stale-swatch"></i>Stale history</span>
+        </div>
+        <p class="demo-takeaway" id="demo-takeaway">
+          At step 64, ReCAP uses 73.3% fewer active tokens while preserving complete visual–action blocks.
+        </p>
+      </div>
+    </section>
+
+    <section id="results" class="paper-section section-shell reveal">
+      <div class="section-kicker">Evidence</div>
+      <h2>Quality, mechanism, and systems gains.</h2>
+      <div class="benchmark-card">
+        <div class="benchmark-heading">
+          <div>
+            <span class="mini-kicker">Main results</span>
+            <h3>ReCAP across models and environments</h3>
+          </div>
+          <p>Paired episodes use identical sampling seeds and action sequences. Better values are bold.</p>
+        </div>
+        <div class="table-scroll" role="region" aria-label="Main benchmark results" tabindex="0">
+          <table class="benchmark-table">
+            <thead>
+              <tr>
+                <th rowspan="2">Context strategy</th>
+                <th colspan="3">BridgeV2</th>
+                <th colspan="3">RT-1</th>
+                <th colspan="3">LIBERO-90</th>
+                <th colspan="3">CALVIN</th>
+              </tr>
+              <tr>
+                <th>LPIPS ↓</th><th>nDTW ↑</th><th>VLM ↑</th>
+                <th>LPIPS ↓</th><th>nDTW ↑</th><th>VLM ↑</th>
+                <th>LPIPS ↓</th><th>nDTW ↑</th><th>VLM ↑</th>
+                <th>LPIPS ↓</th><th>nDTW ↑</th><th>VLM ↑</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="backbone-row"><th colspan="13">RLVR-World</th></tr>
+              <tr>
+                <th>Full Context</th>
+                <td>0.390</td><td>0.199</td><td>64.8</td>
+                <td>0.251</td><td>0.276</td><td>28.1</td>
+                <td>0.269</td><td>0.551</td><td>58.9</td>
+                <td>0.287</td><td>0.528</td><td>56.4</td>
+              </tr>
+              <tr class="ours-row">
+                <th>ReCAP <span>(ours)</span></th>
+                <td><strong>0.143</strong></td><td><strong>0.590</strong></td><td><strong>72.6</strong></td>
+                <td><strong>0.201</strong></td><td><strong>0.558</strong></td><td><strong>71.9</strong></td>
+                <td><strong>0.217</strong></td><td><strong>0.631</strong></td><td><strong>67.8</strong></td>
+                <td><strong>0.234</strong></td><td><strong>0.607</strong></td><td><strong>65.1</strong></td>
+              </tr>
+              <tr class="delta-row">
+                <th>Δ</th>
+                <td>−0.247</td><td>+0.391</td><td>+7.8</td>
+                <td>−0.050</td><td>+0.282</td><td>+43.8</td>
+                <td>−0.052</td><td>+0.080</td><td>+8.9</td>
+                <td>−0.053</td><td>+0.079</td><td>+8.7</td>
+              </tr>
+
+              <tr class="backbone-row"><th colspan="13">iVideoGPT</th></tr>
+              <tr>
+                <th>Full Context</th>
+                <td>0.254</td><td>0.587</td><td>61.3</td>
+                <td>0.267</td><td>0.561</td><td>58.6</td>
+                <td>0.283</td><td>0.529</td><td>55.7</td>
+                <td>0.301</td><td>0.506</td><td>53.2</td>
+              </tr>
+              <tr class="ours-row">
+                <th>ReCAP <span>(ours)</span></th>
+                <td><strong>0.203</strong></td><td><strong>0.665</strong></td><td><strong>70.1</strong></td>
+                <td><strong>0.215</strong></td><td><strong>0.639</strong></td><td><strong>67.6</strong></td>
+                <td><strong>0.231</strong></td><td><strong>0.609</strong></td><td><strong>64.5</strong></td>
+                <td><strong>0.248</strong></td><td><strong>0.586</strong></td><td><strong>61.9</strong></td>
+              </tr>
+              <tr class="delta-row">
+                <th>Δ</th>
+                <td>−0.051</td><td>+0.078</td><td>+8.8</td>
+                <td>−0.052</td><td>+0.078</td><td>+9.0</td>
+                <td>−0.052</td><td>+0.080</td><td>+8.8</td>
+                <td>−0.053</td><td>+0.080</td><td>+8.7</td>
+              </tr>
+
+              <tr class="backbone-row"><th colspan="13">RoboAlign-R1</th></tr>
+              <tr>
+                <th>Full Context</th>
+                <td>0.226</td><td>0.634</td><td>67.2</td>
+                <td>0.239</td><td>0.608</td><td>64.5</td>
+                <td>0.255</td><td>0.576</td><td>61.8</td>
+                <td>0.272</td><td>0.554</td><td>59.1</td>
+              </tr>
+              <tr class="ours-row">
+                <th>ReCAP <span>(ours)</span></th>
+                <td><strong>0.178</strong></td><td><strong>0.709</strong></td><td><strong>75.8</strong></td>
+                <td><strong>0.190</strong></td><td><strong>0.683</strong></td><td><strong>73.1</strong></td>
+                <td><strong>0.206</strong></td><td><strong>0.654</strong></td><td><strong>70.2</strong></td>
+                <td><strong>0.222</strong></td><td><strong>0.634</strong></td><td><strong>67.4</strong></td>
+              </tr>
+              <tr class="delta-row">
+                <th>Δ</th>
+                <td>−0.048</td><td>+0.075</td><td>+8.6</td>
+                <td>−0.049</td><td>+0.075</td><td>+8.6</td>
+                <td>−0.049</td><td>+0.078</td><td>+8.4</td>
+                <td>−0.050</td><td>+0.080</td><td>+8.3</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">Δ denotes the mean paired improvement from Full Context to ReCAP.</p>
+      </div>
+      <div class="result-stack">
+        <figure class="result-figure">
+          <img src="assets/long-horizon.png" alt="Long-horizon prediction quality across RT-1, CALVIN, and LIBERO-90">
+          <figcaption><strong>Long-horizon robustness.</strong> The advantage of ReCAP grows as autoregressive rollout length increases.</figcaption>
+        </figure>
+        <figure class="result-figure">
+          <img src="assets/mechanism.png" alt="Component ablation, stale-history intervention, and attention analysis">
+          <figcaption><strong>Mechanism.</strong> Evicting stale history reallocates attention toward recent states.</figcaption>
+        </figure>
+        <figure class="result-figure">
+          <img src="assets/efficiency.png" alt="Prompt length, KV memory, latency, and concurrency scaling">
+          <figcaption><strong>Efficiency.</strong> ReCAP keeps the active context at 1,931 tokens and scales more effectively under concurrency.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="rollouts" class="paper-section rollout-section reveal">
+      <div class="section-shell">
+        <div class="section-kicker">Qualitative rollouts</div>
+        <h2>Same observations. Same actions. Different context.</h2>
+        <p class="section-intro">
+          Each animation synchronizes ground truth, Full Context, and ReCAP under identical
+          initial observations, actions, and sampling seeds. RT-1, CALVIN, and LIBERO-90
+          show 64-frame rollouts; BridgeV2 shows 32-frame rollouts for its shorter episodes.
+          LIBERO-90 is shown in canonical upright orientation.
+        </p>
+        <div class="tabs" role="tablist" aria-label="Rollout dataset">
+          <button class="tab is-active" role="tab" aria-selected="true" data-tab="rt1">RT-1</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="calvin">CALVIN</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="libero">LIBERO-90</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="bridge">BridgeV2</button>
+        </div>
+
+        <div class="tab-panel is-active" data-panel="rt1">
+          <div class="case-grid">
+            <article class="case-card">
+              <div class="case-copy"><span class="split">RT-1 evaluation</span><h3>“close middle drawer”</h3><span class="gain">+2.41 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/rt1-1.gif" alt="Animated RT-1 comparison for close middle drawer">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+            <article class="case-card">
+              <div class="case-copy"><span class="split">RT-1 evaluation</span><h3>“open top drawer”</h3><span class="gain">+2.12 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/rt1-2.gif" alt="Animated RT-1 comparison for open top drawer">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+            <article class="case-card">
+              <div class="case-copy"><span class="split">RT-1 evaluation</span><h3>“pick rxbar chocolate from bottom drawer and place on counter”</h3><span class="gain">+1.54 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/rt1-3.gif" alt="Animated RT-1 comparison for picking chocolate from a drawer">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="calvin">
+          <div class="case-grid">
+            <article class="case-card">
+              <div class="case-copy"><span class="split">CALVIN validation</span><h3>“go slide the pink block to the left”</h3><span class="gain">+5.23 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/calvin-1.gif" alt="Animated CALVIN comparison for sliding the pink block">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+            <article class="case-card">
+              <div class="case-copy"><span class="split">CALVIN validation</span><h3>“grasp the handle of the drawer, then close it”</h3><span class="gain">+4.75 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/calvin-2.gif" alt="Animated CALVIN comparison for closing the drawer">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+            <article class="case-card">
+              <div class="case-copy"><span class="split">CALVIN validation</span><h3>“go towards the red block in the drawer and grasp it”</h3><span class="gain">+4.61 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/calvin-3.gif" alt="Animated CALVIN comparison for grasping the red block">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="libero">
+          <div class="case-grid">
+            <article class="case-card">
+              <div class="case-copy"><span class="split">LIBERO-90 held-out task</span><h3>“pick up the alphabet soup and put it in the basket”</h3><span class="gain">+6.04 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/libero-1.gif" alt="Animated LIBERO comparison for putting alphabet soup in a basket">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+            <article class="case-card">
+              <div class="case-copy"><span class="split">LIBERO-90 held-out task</span><h3>“pick up the book and place it in the right compartment of the caddy”</h3><span class="gain">+3.92 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/libero-2.gif" alt="Animated LIBERO comparison for placing a book in a caddy">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+            <article class="case-card">
+              <div class="case-copy"><span class="split">LIBERO-90 held-out task</span><h3>“put the chocolate pudding to the right of the plate”</h3><span class="gain">+2.61 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/libero-3.gif" alt="Animated LIBERO comparison for moving chocolate pudding">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+          </div>
+        </div>
+        <div class="tab-panel" data-panel="bridge">
+          <p class="section-intro">Three high-gain examples selected from 24 validation candidates. Each rollout observes one frame and predicts the next 32. Badges show mean PSNR improvement across all 32 predictions; task descriptions label the episodes.</p>
+          <div class="case-grid">
+            <article class="case-card">
+              <div class="case-copy"><span class="split">BridgeV2 validation · 32 frames</span><h3>“Place the pot on top of the towel.”</h3><span class="gain" title="Mean PSNR improvement over all 32 predicted frames">+0.78 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/bridge-1.gif" width="728" height="192" loading="lazy" alt="Animated BridgeV2 comparison: Place the pot on top of the towel.">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+            <article class="case-card">
+              <div class="case-copy"><span class="split">BridgeV2 validation · 32 frames</span><h3>“put the broccoli next to the bowl”</h3><span class="gain" title="Mean PSNR improvement over all 32 predicted frames">+4.02 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/bridge-2.gif" width="728" height="192" loading="lazy" alt="Animated BridgeV2 comparison: put the broccoli next to the bowl">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+            <article class="case-card">
+              <div class="case-copy"><span class="split">BridgeV2 validation · 32 frames</span><h3>“Move the spatula to corner of the table.”</h3><span class="gain" title="Mean PSNR improvement over all 32 predicted frames">+2.30 dB</span></div>
+              <div class="triptych-labels"><span>Ground truth</span><span>Full Context</span><span>ReCAP</span></div>
+              <img src="assets/gifs/bridge-3.gif" width="728" height="192" loading="lazy" alt="Animated BridgeV2 comparison: Move the spatula to corner of the table.">
+              <button class="replay" type="button" data-replay>Replay</button>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="bibtex" class="paper-section section-shell reveal">
+      <div class="section-kicker">Citation</div>
+      <h2>BibTeX</h2>
+      <div class="bibtex-wrap">
+        <pre id="bibtex-code">@misc{recap2027,
+  title  = {Remembering What Matters for Long-Horizon Robot World Models},
+  author = {Anonymous},
+  year   = {2027}
+}</pre>
+        <button class="copy-button" type="button" data-copy>Copy</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="section-shell footer-inner">
+      <span>ReCAP · Training-free context scheduling</span>
+      <span>Project page preview</span>
+    </div>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>
